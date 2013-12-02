@@ -1,0 +1,38 @@
+This is a program for flashing OpenWRT onto Meraki Outdoor (also known as Meraki Sparky board) units.
+
+Work in progress. Barely usable.
+
+These instructions are for debian/ubuntu.
+
+To use this, you must have a usb to 3.3v serial adapter hooked into the meraki outdoor board, and an ethernet cable going from the port nearest the power plug to your laptop.
+
+You must have tftpd-hpa installed, and your /etc/default/tftpd-hpa should looklike this:
+
+TFTP_USERNAME="tftp"
+TFTP_DIRECTORY="/var/lib/tftpboot"
+TFTP_ADDRESS="0.0.0.0:69"
+TFTP_OPTIONS="--secure"
+
+You should ensure that your ethernet adapter has the IP 192.168.84.9 and you need to download the following files into /var/lib/tftpboot:
+
+http://downloads.openwrt.org/attitude_adjustment/12.09/atheros/generic/openwrt-atheros-root.squashfs
+
+http://downloads.openwrt.org/attitude_adjustment/12.09/atheros/generic/openwrt-atheros-vmlinux.gz
+
+Now start tftpd-hpa: 
+
+/etc/init.d/tftpd-hpa start
+
+Start the merakiflasher:
+
+./merakiflasher.py
+
+and power up the meraki outdoor.
+
+The flashing proceeds automatically, and takes about 20 minutes. The router will reboot four times.
+
+After the script informs you that flashing is done, simply reboot the router. It should be reachable via telnet after boot. 
+
+
+
+License: GPLv3
