@@ -10,30 +10,45 @@
 import serial
 import re
 import time
+import sys
+
+reflash = False
 
 class Flasher:
+
+    def debugPrint(self, str):
+        if self.debug:
+            print str
 
     def readline(self):
         str = ''
         while True:
             ch = self.ser.read(1)
             if (ch == "\n") or (ch == "\r"):
+                self.debugPrint("RECEIVED: " + str)
                 return str
             str += ch
             if re.match(".*\(y/n\)\?\s+$", str):
+                self.debugPrint("RECEIVED: " + str)
                 return str
             if re.match("^RedBoot>\s+$", str):
+                self.debugPrint("RECEIVED: " + str)
                 return str
 
 
     def writeslow(self, str):
+        self.debugPrint("SENT: " + str)
         for ch in str:
             self.ser.write(ch)
             time.sleep(0.05)
+        # TODO maybe read back remote echo before continuing?
 
-    def __init__(self, ttyDevice, baudrate):
-        print "initializing"
+    def __init__(self, ttyDevice, baudrate, reflash=False, debug=False):
+        print "Initializing"
+        print "Flashing will take approximately 20 minutes"
         self.ser = serial.Serial(ttyDevice, baudrate)
+        self.reflash = reflash
+        self.debug = debug
 
         self.cmds = {
             'part1': [
@@ -74,11 +89,13 @@ class Flasher:
 
             if pattern:
                 if re.match(pattern, got):
+                    print "got pattern"
                     return True
             if re.match("^RedBoot>\s+$", got):
-
+                print "got command prompt"
                 return True
             if re.match(".*\(y/n\)\?.*$", got):
+                print "got yesno"
                 self.ser.write("y\n")
         
 
@@ -103,33 +120,38 @@ class Flasher:
         while True:
             self.wait_for_boot()
 
+            if self.reflash:
+                print "Configuring router for reflash"
+                self.set_progress('unflashed')
+                self.reflash = False
+
             progress = self.get_progress()
 
             if progress == 'part1 complete':
-                print "Flashing part 2 of 4"
+                print "Flashing part 2 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part2'])
                 self.set_progress('part2 complete')
             elif progress == 'part2 complete':
-                print "Flashing part 3 of 4"
+                print "Flashing part 3 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part3'])
                 self.set_progress('part3 complete')
             elif progress == 'part3 complete':
-                print "Flashing part 4 of 4"
+                print "Flashing part 4 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part4'])
                 self.set_progress('flashing complete')
             elif progress == 'flashing complete':
                 print "Flashing complete! Please reboot your router."
                 exit(0)
             else:
-                print "Flashing part 1 of 4"
+                print "Flashing part 1 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part1'])
                 self.set_progress('part1 complete')
 
     def wait_for_boot(self):
         print "waiting for router to (re)boot"
         self.expect("^== Executing boot script in ")
-        print "canceling factory standard boot script"
-        self.writeslow("\x03\n")
+        print "Router bootup detected"
+        self.writeslow("\x03")
         self.expect("^RedBoot>")
         
     def send_command(self, cmd):
@@ -139,12 +161,40 @@ class Flasher:
     def send_commands(self, cmds):
         for cmd in cmds:
             self.send_command(cmd)
-            time.sleep(1)
     
+
+def usage():
+    print __file__+" [-r] -d <serial_device>"
+    print " "
+    print " -r: reflash a device that was previously flashed"
+    print " "
+    print "  example: "+__file__+" /dev/ttyUSB0"
+    print " "
 
 if __name__ == "__main__":
 #    server = tftpy.TftpServer('./tftp_root/')
 #    server.listen('192.168.84.9', 69)
 
-    f = Flasher('/dev/ttyUSB0', 115200)
+    serial_dev = None
+    reflash = False
+    debug = False
+
+    if (len(sys.argv) < 2) or (len(sys.argv) > 4):
+        usage()
+        sys.exit(1)
+       
+    if len(sys.argv) == 4:
+        if sys.argv[1] == '-r' or sys.argv[2] == '-r':
+            reflash = True
+        if sys.argv[1] == '-d' or sys.argv[2] == '-d':
+            debug = True
+    elif len(sys.argv) == 3:
+        if sys.argv[1] == '-r':
+            reflash = True
+        if sys.argv[1] == '-d':
+            debug = True
+
+    serial_dev = sys.argv[len(sys.argv)-1]
+
+    f = Flasher(serial_dev, 115200, reflash=reflash, debug=debug)
     f.flash()
