@@ -199,6 +199,16 @@ if __name__ == "__main__":
     try:
         f = Flasher(serial_dev, 115200, reflash=reflash, debug=debug)
         f.flash()
+        print " "
+        print " .__        ,         .    .            ,      . "
+        print " [__) _ . .-+- _ ._.  |   *|_  _ ._. _.-+- _  _| "
+        print " |  \(_)(_| | (/,[    |___|[_)(/,[  (_] | (/,(_] "
+        print "   .        __..  ..__ .__..  ..___ __..  . "
+        print "   |_   .  (__ |  ||  \|  ||\/|[__ (__ |__| "    
+        print "   [_)\_|  .__)|__||__/|__||  |[___.__)|  | "    
+        print "      ._|                                   "
+
+
     finally:
         print "Shutting down tftp server"
         p.kill()
