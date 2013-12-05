@@ -6,8 +6,8 @@
 # Copyright 2013 Marc Juul
 # License: GPLv3
 
-#import tftpy
 import serial
+import subprocess
 import re
 import time
 import sys
@@ -44,11 +44,11 @@ class Flasher:
         # TODO maybe read back remote echo before continuing?
 
     def __init__(self, ttyDevice, baudrate, reflash=False, debug=False):
-        print "Initializing"
-        print "Flashing will take approximately 20 minutes"
+        print "Opening serial device " + ttyDevice
         self.ser = serial.Serial(ttyDevice, baudrate)
         self.reflash = reflash
         self.debug = debug
+        print "Flashing will take approximately 20 minutes"
 
         self.cmds = {
             'part1': [
@@ -89,13 +89,10 @@ class Flasher:
 
             if pattern:
                 if re.match(pattern, got):
-                    print "got pattern"
                     return True
             if re.match("^RedBoot>\s+$", got):
-                print "got command prompt"
                 return True
             if re.match(".*\(y/n\)\?.*$", got):
-                print "got yesno"
                 self.ser.write("y\n")
         
 
@@ -117,6 +114,7 @@ class Flasher:
                 return m.group(1)
 
     def flash(self):
+        print "Ready to flash. Power on your router now."
         while True:
             self.wait_for_boot()
 
@@ -167,13 +165,12 @@ def usage():
     print __file__+" [-r] -d <serial_device>"
     print " "
     print " -r: reflash a device that was previously flashed"
+    print " -d: enable debug output"
     print " "
     print "  example: "+__file__+" /dev/ttyUSB0"
     print " "
 
 if __name__ == "__main__":
-#    server = tftpy.TftpServer('./tftp_root/')
-#    server.listen('192.168.84.9', 69)
 
     serial_dev = None
     reflash = False
@@ -196,5 +193,13 @@ if __name__ == "__main__":
 
     serial_dev = sys.argv[len(sys.argv)-1]
 
-    f = Flasher(serial_dev, 115200, reflash=reflash, debug=debug)
-    f.flash()
+    print "Starting tftp server"
+    p = subprocess.Popen(["/usr/bin/python", "tftpserver.py"])
+
+    try:
+        f = Flasher(serial_dev, 115200, reflash=reflash, debug=debug)
+        f.flash()
+    finally:
+        print "Shutting down tftp server"
+        p.kill()
+        p.wait()
