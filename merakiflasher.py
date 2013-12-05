@@ -208,8 +208,6 @@ if __name__ == "__main__":
         print "   [_)\_|  .__)|__||__/|__||  |[___.__)|  | "    
         print "      ._|                                   "
 
-
     finally:
-        print "Shutting down tftp server"
         p.kill()
         p.wait()
