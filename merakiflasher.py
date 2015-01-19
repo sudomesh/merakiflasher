@@ -94,7 +94,9 @@ class Flasher:
                 return True
             if re.match(".*\(y/n\)\?.*$", got):
                 self.ser.write("y\n")
-        
+
+    def reboot(self):
+        self.send_command('reset')
 
     def set_progress(self, progress):
         self.send_command('alias flashprogress "'+progress+'"')
@@ -129,17 +131,22 @@ class Flasher:
                 print "Flashing part 2 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part2'])
                 self.set_progress('part2 complete')
+                self.reboot()
             elif progress == 'part2 complete':
                 print "Flashing part 3 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part3'])
                 self.set_progress('part3 complete')
+                self.reboot()
             elif progress == 'part3 complete':
                 print "Flashing part 4 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part4'])
                 self.set_progress('flashing complete')
+                self.reboot()
             elif progress == 'flashing complete':
-                print "Flashing complete! Please reboot your router."
-                exit(0)
+                print "Flashing complete! Booting into OpenWRT"
+                print "Remember to change your baudrate to 9600"
+                self.reboot()
+                return True
             else:
                 print "Flashing part 1 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part1'])
