@@ -49,7 +49,7 @@ class Flasher:
         self.ser = serial.Serial(ttyDevice, baudrate)
         self.reflash = reflash
         self.debug = debug
-        print "Flashing will take approximately 20 minutes"
+        print "Flashing will take approximately 18 minutes"
 
         self.cmds = {
             'part1': [
@@ -61,15 +61,15 @@ class Flasher:
                 "fconfig -d boot_script_data\nfis load -d linux\nexec\n"
                 ],
             'part2': [
-                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80041000 -l 0x210000 -f 0xa81b0000"
                 ],
             'part3': [
-                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80251000 -l 0x200000 -f 0xa83c0000"
                 ],
             'part4': [
-                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80451000 -l 0x200000 -f 0xa85c0000"
                 ]
             }
@@ -96,9 +96,6 @@ class Flasher:
             if re.match(".*\(y/n\)\?.*$", got):
                 self.ser.write("y\n")
 
-    def reboot(self):
-        self.send_command('reset')
-
     def set_progress(self, progress):
         self.send_command('alias flashprogress "'+progress+'"')
 
@@ -116,15 +113,26 @@ class Flasher:
                 self.expect_prompt()
                 return m.group(1)
 
+    def init_watchdog(self): # must do this or reset_watchdog has no effect
+        self.writeslow("mfill -b 0xb1000098 -l 4 -p 0x00000043\n") # set gpio6 pin to OUTPUT
+
+    def reset_watchdog(self): # must do this every 4.5 minutes to prevent reboot
+        self.writeslow("mfill -b 0xb1000090 -l 4 -p 0x00000042\n") # set gpio6 high
+        self.writeslow("mfill -b 0xb1000090 -l 4 -p 0x00000002\n") # set gpio6 low
+
     def flash(self):
         print "Ready to flash. Power on your router now."
-        while True:
-            self.wait_for_boot()
+        self.wait_for_boot()
 
-            if self.reflash:
-                print "Configuring router for reflash"
-                self.set_progress('unflashed')
-                self.reflash = False
+        if self.reflash:
+            print "Configuring router for reflash"
+            self.set_progress('unflashed')
+            self.reflash = False
+
+        self.init_watchdog()
+
+        while True:
+            self.reset_watchdog()
 
             progress = self.get_progress()
 
@@ -132,21 +140,19 @@ class Flasher:
                 print "Flashing part 2 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part2'])
                 self.set_progress('part2 complete')
-                self.reboot()
             elif progress == 'part2 complete':
                 print "Flashing part 3 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part3'])
                 self.set_progress('part3 complete')
-                self.reboot()
             elif progress == 'part3 complete':
                 print "Flashing part 4 of 4 (~5 mins)"
                 self.send_commands(self.cmds['part4'])
                 self.set_progress('flashing complete')
-                self.reboot()
             elif progress == 'flashing complete':
                 print "Flashing complete! Booting into OpenWRT"
                 print "Remember to change your baudrate to 9600"
-                self.reboot()
+                print "And put watchdog resetting into rc.local and crontab"
+                self.send_command('reset')
                 return True
             else:
                 print "Flashing part 1 of 4 (~5 mins)"
