@@ -61,15 +61,15 @@ class Flasher:
                 "fconfig -d boot_script_data\nfis load -d linux\nexec\n"
                 ],
             'part2': [
-             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80041000 -l 0x210000 -f 0xa81b0000"
                 ],
             'part3': [
-             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80251000 -l 0x200000 -f 0xa83c0000"
                 ],
             'part4': [
-             #   "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
+                "load -r -b 0x80041000 -m tftp -h 192.168.84.9 openwrt-atheros-root.squashfs",
                 "fis write -b 0x80451000 -l 0x200000 -f 0xa85c0000"
                 ]
             }
