@@ -25,19 +25,20 @@ class Flasher:
         while True:
             ch = self.ser.read(1)
             if (ch == "\n") or (ch == "\r"):
-                self.debugPrint("RECEIVED: " + str)
+                if (len(str) > 0):
+                    self.debugPrint("RECEIVED: " + str)
                 return str
             str += ch
             if re.match(".*\(y/n\)\?\s+$", str):
                 self.debugPrint("RECEIVED: " + str)
                 return str
             if re.match("^RedBoot>\s+$", str):
-                self.debugPrint("RECEIVED: " + str)
+                # self.debugPrint("RECEIVED: " + str)
                 return str
 
 
     def writeslow(self, str):
-        self.debugPrint("SENT: " + str)
+        self.debugPrint("SENT: " + str.split('\n')[0])
         for ch in str:
             self.ser.write(ch)
             time.sleep(0.05)
