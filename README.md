@@ -1,4 +1,4 @@
-This is a program for flashing OpenWRT onto Meraki Outdoor (also known as Meraki Sparky board) units. It may work for other models, but it expects the hardware watchdog to reboot the router every five minutes. 
+This is a program for flashing OpenWRT onto Meraki Outdoor (also known as Meraki Sparky board) units.  It may work for other models.  It prevents the hardware watchdog from rebooting the router every five minutes by toggling the gpio6 pin.
 
 # Prerequisites
 
@@ -50,7 +50,7 @@ sudo ./merakiflasher.py /dev/ttyUSB0
 
 Now power up your router.
 
-The flashing proceeds automatically, and takes about 20 minutes. The router will reboot four times.
+The flashing proceeds automatically, and takes about 18 minutes.
 
 After the script informs you that flashing is done, simply reboot the router. It should be reachable via telnet after boot. 
 
@@ -60,15 +60,33 @@ The baudrate on the Meraki is per default 115200 but at some point while booting
 
 # Keeping the watchdog at bay
 
-To prevent the watchdog from rebooting the meraki router, create a cron entry that runs the following script:
+To prevent the watchdog from rebooting the Meraki Outdoor router, put the following in /etc/rc.local (before the 'exit 0'):
+```
+echo leds-gpio >/sys/bus/platform/drivers/leds-gpio/unbind
+echo 6 >/sys/class/gpio/export
+echo low >/sys/devices/virtual/gpio/gpio6/direction
+
+echo 1 >/sys/devices/virtual/gpio/gpio6/value
+echo 0 >/sys/devices/virtual/gpio/gpio6/value
+```
+
+AND create a cron entry that runs the following script every 3 minutes:
 
 ```
+root@OpenWrt:/# cat /bin/watchdog
 #!/bin/sh
-/usr/bin/gpioctl dirout 6
-/usr/bin/gpioctl set 6
-/usr/bin/gpioctl clear 6
+echo 1 >/sys/devices/virtual/gpio/gpio6/value
+echo 0 >/sys/devices/virtual/gpio/gpio6/value
 exit 0
 ```
+
+The crontab file will look like this:
+
+```
+*/3 * * * * /bin/watchdog
+```
+
+don't forget to make sure /bin/watchdog is executable!
 
 Thanks to [Adrian Chadd for figuring this out](http://adrianchadd.blogspot.com/2014/03/meraki-sparky-boards-and-constant.html).
 
