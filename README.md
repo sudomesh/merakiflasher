@@ -1,4 +1,4 @@
-This is a program for flashing OpenWRT onto Meraki Outdoor (also known as Meraki Sparky board) units.  It may work for other models.  It prevents the hardware watchdog from rebooting the router every five minutes by toggling the gpio6 pin.
+This is a program for flashing OpenWRT onto Meraki Outdoor (also known as Meraki Sparky board) units. It may work for other models, but it expects the hardware watchdog to reboot the router every five minutes. 
 
 # Prerequisites
 
@@ -50,7 +50,7 @@ sudo ./merakiflasher.py /dev/ttyUSB0
 
 Now power up your router.
 
-The flashing proceeds automatically, and takes about 18 minutes.
+The flashing proceeds automatically, and takes about 20 minutes. The router will reboot four times.
 
 After the script informs you that flashing is done, simply reboot the router. It should be reachable via telnet after boot. 
 
